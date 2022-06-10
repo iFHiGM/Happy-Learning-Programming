@@ -1,0 +1,171 @@
+#+begin_quote
+姑且将第一日从甲子开始。
+#+end_quote
+
+* TODO 甲子
+** 000 Qt/C++ 开发环境配置 
+在 =ArchLinux= 下，你可以使用 =yay= 安装 C++ 编译器、 =CMake= 以及 =QT= 相关的开发工具：
+#+BEGIN_SRC sh
+yay -S qt6 qtcreator gcc cmake
+#+END_SRC
+
+** 001 创建一个新的 CMake/C++ 工程
+完整的可编译工程位于：[[file:002/][002]] 。
+
+目前 C++ 领域比较流行的构建工具是 =CMake= ，当然其他的构建工具也不错，但是主要还是 =CMake= 居多占主流。
+
+第一个 =CMake= 项目：
+#+BEGIN_SRC cmake
+cmake_minimum_required(VERSION 3.23 FATAL_ERROR)
+project(first-cpp-program CXX)
+
+set(CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/dist)
+
+add_executable(first-cpp-program)
+target_sources(first-cpp-program
+    PRIVATE
+        first_cpp.cpp
+)
+
+install(TARGETS first-cpp-program DESTINATION bin)
+#+END_SRC
+
+各个命令的含义简单解释：
+- ~cmake_minimum_required~ ：设置构建这个 C++ 工程所使用的 =CMake= 程序的版本，这里的 =FATAL_ERROR= 是可选项，加上后，如果系统中安装的版本小于 =3.23= 版本，那么会在执行工程配置阶段打印一个致命错误并直接中断工程配置.
+- ~project~ ：每一个 =CMake= C++ 工程，都必须包含一个 =project= 命令，用于指定工程名，语言等信息，代码中的 ~CXX~ 表示这个工程是一个 C++ 工程， =CMake= 会自动选择相应工具链。
+- ~set~ ：变量定义命令，这里的 ~CMAKE_INSTALL_PREFIX~ 是一个 =CMake= 系统变量，指代程序的安装目的地前缀，也可以不在此处指定，而在命令行配置时传入。
+- ~add_executable~ ：生成一个可执行程序目标，在现代 ~CMake~ 中， =target= 是一个重要的概念，每一个可执行程序，静态库，动态库都可以看成是一个可以生成的目标，这个目标可以被看成是一个对象，围绕着这个对象，有一系列相应的操作。
+- ~target_sources~ ：而这个命令就是其中的一个操作，该命令指定 =first-cpp-program= 这个可执行程序目标的源文件，其中的 =PRIVATE= 代表着使用要求，简单得说就是这个目标对其使用者/消费者的可见性（或者说是否参与消费者的编译构建），而这里 =PRIVATE= 大致相当于只对这个目标编译本身可见，而对目标的消费者不可见，而我们的可执行文件在构建好之后就不需要再被构建，所以使用 =PRIVATE= 。
+- ~install~ ：在编译好之后，将可执行文件安装到指定位置，其中 TAEGETS 指代目标，其后跟着我们在上一步创建的目标的名字，也就是说当前要安装这个目标的相关文件到某个位置，而后面的 =DESTINATION= 则指代了目标被安装的位置，如果这个位置不被指定为绝对路径，那么它被解释为相对上面定义的 =CMAKE_INSTALL_PREFIX= 路径的位置。
+
+编译这个程序：
+1. 配置这个 C++ =CMake= 工程，在 =CMakeLists.txt= 所在的位置打开命令行，输入下列命令配置工程
+#+BEGIN_SRC sh
+cmake -S . -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
+#+END_SRC
+
+- =-S= ， =-B= ：分别指代源码目录（包含 =CMakeLists.txt= ）的目录，以及进行编译的的二进制根目录。
+- =-DCMAKE_BUILD_TYPE= ：表示从命令行指定一个名为 =CMAKE_BUILD_TYPE= 的变量，而这个变量会控制编译过程中，生成的二进制文件的类型，除了 =Relase= ， =Debug= 也是可用的类型之一。
+
+2. 然后构建这个工程：
+#+BEGIN_SRC sh
+cmake --build cmake-build-relase
+#+END_SRC
+
+二进制工件会被构建到上一步配置的 =cmake-build-release= 目录中。
+
+3. 将二进制工件安装到指定位置：
+#+BEGIN_SRC sh
+cmake --install cmake-build-release
+#+END_SRC
+
+根据脚本描述的规则，二进制工件会被安装到 =${CMAKE_CURRENT_BINARY_DIR}/dist/bin= 这个目录下，而其中的 =CMAKE_CURRENT_BINARY_DIR= 则指代当前工程的二进制构建目录。
+
+4. 至此，便可以通过执行安装位置的二进制文件来运行我们生成的程序：
+#+begin_src sh :exports both
+./cmake-build-release/dist/bin/first-cpp-program
+#+end_src
+
+#+RESULTS:
+: hello world!
+
+在这里目标的名字，也是可执行文件的名字。
+
+而这个命令行创建的工程如何用 Qt 打开呢？
+
+打开 Qt Creator ，通过 =File= -> =Open File or Project...= ，定位到工程的 =CMakeLists.txt= 文件，选择打开，即可使用 Qt 打开这个 =CMake= C++ 工程。
+
+** 002 第一个 Hello World C++ 程序
+
+第一个 C++ 程序源码:
+#+begin_src C++
+#include <iostream>
+
+// using namespace std;
+
+int main()
+{
+    std::cout << "hello, world!" << std::endl;
+    return 0;
+}
+#+end_src
+
+
+- 通常在实践中，不在源程序中写 ~using namespace std;~ ，这样可能会导致潜在的命名冲突。
+- ~<<~ 是输出流运算符，相应的 ~std::cout~ 即是输出流，流的方向即是流操作符指向的方向。
+- ~std::endl~ 虽然在结果上等于换行符的效果，但是其却是一个函数。
+- 可以省去 ~main~ 函数中的参数列表，因为这里根本用不着。
+- 包含头文件时，亦即使用 ~#include~ 时，尖括号 =<...>= 通常包含一些系统级头文件，而双引号 ~﻿"..."﻿~ 一般包含一些自定义头文件，当然所有头文件都可以使用双引号包含。
+- 形参可以只要类型不要名字，例如 ~int test(int a, int /* placeholder */ );~ 这个函数声明，有时用于预分配参数列表以备后续扩展使用。
+
+** 003 注释语句
+
+两种形式：
+
+- C++ 形式： ~// this is a c++-style comment~ 。
+- C 形式： ~/* this is a c-style comment */~ 。
+
+按我的理解，这两种形式都不过是 C/*nix 世界万物皆文件概念的延申，万物皆文件的概念之后是文件流的概念，而流没有绝对的开始和结束（就概念而言），这两种注释形式统一起来后，其唯一不同就是编译器处理注释时，选择切断文件流中无用部分的前后标志，对于 C++-Style 风格，前面的标志是 =//= ，后面的标志则是换行符，而 C-Style 风格中，前面的标志是 =/*= ， 后面的标志是 =*/= ，所以其实从流的角度看，这两种注释表现方式没有任何不同，只要你将换行符看作与普通字符别无二致，那么所谓的注释嵌套就变成了一个伪概念了。
+
+** 004 C++ 关键字 
+
+在具体实践中学习，可以到cppreference 上的[[https://zh.cppreference.com/w/cpp/keyword][关键字]]章节获得详细的解释。
+
+** 005 常量与变量
+
+与之相关的一个重要 C++ 概念：[[https://zh.cppreference.com/w/cpp/language/constant_expression][常量表达式]]，在模板元编程中使用广泛。
+
+** 006 整形常量
+
+- 二进制常量： ~0b10010~ 。
+- 八进制常量： ~01237~ 。
+- 十六进制常量： ~0xABCD~ 。
+
+#+begin_src C++ :exports both :results scalar
+#include <iostream>
+
+int main() {
+    auto a = 0123; // 前缀0是不能少的，否则是十进制数
+    auto b = 123;
+    std::cout << "a: " << a << std::endl;
+    std::cout << "b: " << b << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: a: 83
+: b: 123
+
+~std::cout~ 默认按照十进制格式输出整形，特定格式需要调整输出格式（使用流操纵符或者 ~bitset~ 对象）：
+- 二进制：包含 <bitset> 头文件，比如 ~std::bitset<4>(0b1101)~ 。
+- 八进制：使用 ~std::oct~ 操纵符。
+- 十进制：使用 ~std::dec~ 操纵符。
+- 十六进制：使用 ~std::hex~ 操纵符。
+
+
+下面有一个在群友启发下想到的场景。
+
+整形后缀，在某些隐式转换的场合比较有用，下列场景中，如果不加整形后缀，会默认按 =int= 处理，会导致整形溢出，而另一种解决方法是用常量表达式替换宏定义。
+#+begin_src C++ :exports both :results scalar
+#include <iostream>
+
+#define KB 1024L
+#define MB (1024 * KB)
+#define GB (1024 * MB)
+#define TB (1024 * GB)
+
+int main() {
+    std::cout << KB << std::endl
+              << MB << std::endl
+              << GB << std::endl
+              << TB << std::endl;
+    return 0;
+}
+#+end_src
+
+#+RESULTS:
+: 1024
+: 1048576
+: 1073741824
+: 1099511627776
