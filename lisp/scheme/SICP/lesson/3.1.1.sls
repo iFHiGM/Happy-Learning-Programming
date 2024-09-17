@@ -1,5 +1,5 @@
 ;; withdraw
-; (define balance 100) ; define balance in REPL.
+(define balance 100) ; define balance in REPL.
 (define (withdraw amount)
   (if (>= balance amount)
       (begin (set! balance (- balance amount))
